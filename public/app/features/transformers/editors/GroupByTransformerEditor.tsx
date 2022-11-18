@@ -22,6 +22,7 @@ interface FieldProps {
   fieldName: string;
   config?: GroupByFieldOptions;
   onConfigChange: (config: GroupByFieldOptions) => void;
+  default_?: GroupByFieldOptions;
 }
 
 export const GroupByTransformerEditor: React.FC<TransformerUIProps<GroupByTransformerOptions>> = ({
@@ -45,15 +46,37 @@ export const GroupByTransformerEditor: React.FC<TransformerUIProps<GroupByTransf
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [onChange]
   );
+  const onConfigDefaultChange = useCallback(
+    (fieldName: string) => (config: GroupByFieldOptions) => {
+      onChange({
+        ...options,
+        default: config,
+      });
+    },
+    // Adding options to the dependency array causes infinite loop here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [onChange]
+  );
 
   return (
     <div>
+      <GroupByFieldConfiguration
+        onConfigChange={onConfigDefaultChange('__default__')}
+        fieldName="Default"
+        config={options.default}
+      />
+      <p>
+        Default operation to run on all fields if nothing has been selected. Useful together with &quot;Join by
+        labels&quot; as fields will be dynamic.
+      </p>
+      <hr />
       {fieldNames.map((key) => (
         <GroupByFieldConfiguration
           onConfigChange={onConfigChange(key)}
           fieldName={key}
           config={options.fields[key]}
           key={key}
+          default_={options.default}
         />
       ))}
     </div>
@@ -65,7 +88,7 @@ const options = [
   { label: 'Calculate', value: GroupByOperationID.aggregate },
 ];
 
-export const GroupByFieldConfiguration: React.FC<FieldProps> = ({ fieldName, config, onConfigChange }) => {
+export const GroupByFieldConfiguration: React.FC<FieldProps> = ({ fieldName, config, onConfigChange, default_ }) => {
   const styles = getStyling();
 
   const onChange = useCallback(
@@ -90,7 +113,7 @@ export const GroupByFieldConfiguration: React.FC<FieldProps> = ({ fieldName, con
             className="width-12"
             options={options}
             value={config?.operation}
-            placeholder="Ignored"
+            placeholder={default_?.operation ? 'default' : 'Ignored'}
             onChange={onChange}
             isClearable
           />

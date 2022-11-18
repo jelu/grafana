@@ -21,6 +21,7 @@ export interface GroupByFieldOptions {
 }
 
 export interface GroupByTransformerOptions {
+  default: GroupByFieldOptions;
   fields: Record<string, GroupByFieldOptions>;
 }
 
@@ -116,7 +117,7 @@ export const groupByTransformer: DataTransformerInfo<GroupByTransformerOptions> 
             }
 
             const fieldName = getFieldDisplayName(field);
-            const aggregations = options.fields[fieldName].aggregations;
+            const aggregations = getAggregationsForField(field, options);
             const valuesByAggregation: Record<string, any[]> = {};
 
             valuesByGroupKey.forEach((value) => {
@@ -165,10 +166,26 @@ const shouldGroupOnField = (field: Field, options: GroupByTransformerOptions): b
 
 const shouldCalculateField = (field: Field, options: GroupByTransformerOptions): boolean => {
   const fieldName = getFieldDisplayName(field);
+  if (
+    (options?.fields[fieldName]?.operation === undefined || options?.fields[fieldName]?.operation === null) &&
+    options?.default?.operation === GroupByOperationID.aggregate &&
+    Array.isArray(options?.default.aggregations) &&
+    options?.default.aggregations.length > 0
+  ) {
+    return true;
+  }
   return (
     options?.fields[fieldName]?.operation === GroupByOperationID.aggregate &&
     Array.isArray(options?.fields[fieldName].aggregations) &&
     options?.fields[fieldName].aggregations.length > 0
+  );
+};
+
+const getAggregationsForField = (field: Field, options: GroupByTransformerOptions): ReducerID[] => {
+  const fieldName = getFieldDisplayName(field);
+  return (
+    (options.fields[fieldName]?.operation === null && options.default.aggregations) ||
+    options.fields[fieldName].aggregations
   );
 };
 
